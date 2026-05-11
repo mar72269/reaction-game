@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Reaction Timer | Cyber-Minimalism</title>
+    <!-- Google Fonts: JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        /* DESIGN SYSTEM & CSS RESET */
+        :root {
+            --bg-color: #0F172A;
+            --text-color: #F8FAFC;
+            --accent-waiting: #EF4444; /* Pulsing Red */
+            --accent-active: #10B981;  /* Glowing Emerald */
+            --accent-penalty: #EC4899; /* Hot Pink */
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'JetBrains Mono', monospace;
+            user-select: none; /* Prevent text selection during frantic clicking */
+            -webkit-user-select: none;
+        }
+
+        /* THREE.JS CANVAS CONTAINER */
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            cursor: crosshair;
+        }
+
+        /* UI OVERLAY LAYER */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none; /* Let clicks pass through to the canvas */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+
+        /* GLASSMORPHIC PANELS */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            pointer-events: auto; /* Re-enable pointer events for UI interaction if needed */
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .title h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.05em;
+        }
+
+        .title p {
+            margin: 0.25rem 0 0 0;
+            font-size: 0.85rem;
+            opacity: 0.6;
+        }
+
+        .stats-container {
+            text-align: right;
+            min-width: 150px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            opacity: 0.6;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-active);
+            margin-top: 0.25rem;
+        }
+
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0.5rem 0 0 0;
+            font-size: 0.85rem;
+            opacity: 0.8;
+            max-height: 100px;
+            overflow-y: hidden;
+        }
+
+        .history-list li {
+            margin-bottom: 0.25rem;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 2px;
+        }
+
+        .center-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+        }
+
+        #main-message {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            text-shadow: 0 0 20px rgba(0,0,0,0.8);
+            margin: 0;
+            transition: color 0.2s ease;
+        }
+
+        #sub-message {
+            font-size: 1rem;
+            opacity: 0.7;
+            margin-top: 0.5rem;
+        }
+
+        .footer {
+            text-align: center;
+            opacity: 0.5;
+            font-size: 0.85rem;
+        }
+
+        /* MEDIA QUERIES FOR RESPONSIVENESS */
+        @media (max-width: 768px) {
+            .header { flex-direction: column; gap: 1rem; }
+            .stats-container { text-align: left; }
+            #main-message { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 3D Render Target -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay -->
+    <div id="ui-layer">
+        <div class="header">
+            <div class="glass-panel title">
+                <h1>NEURO_RESPONSE</h1>
+                <p>High-Precision 3D Reaction Test</p>
+            </div>
+            
+            <div class="glass-panel stats-container">
+                <div class="stat-label">Best Time</div>
+                <div class="stat-value" id="best-time">-- ms</div>
+                <div class="stat-label" style="margin-top: 1rem;">Recent</div>
+                <ul class="history-list" id="history-list">
+                    <li>No attempts yet</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="center-display">
+            <h2 id="main-message">SYSTEM IDLE</h2>
+            <p id="sub-message">Click or press Spacebar to initiate sequence</p>
+        </div>
+
+        <div class="footer">
+            <p>Drag to rotate camera | Built with Vanilla JS & Three.js</p>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * STATE MACHINE & GAME LOGIC
+         * Using performance.now() for sub-millisecond precision.
+         */
+        const STATES = {
+            IDLE: 'IDLE',
+            WAITING: 'WAITING',
+            ACTIVE: 'ACTIVE',
+            PENALTY: 'PENALTY',
+            RESULT: 'RESULT'
+        };
+
+        let currentState = STATES.IDLE;
+        let timeoutId = null;
+        let activeStartTime = 0;
+        
+        // In-memory state tracking
+        let bestTime = Infinity;
+        let attemptHistory = [];
+
+        // DOM Elements
+        const mainMessage = document.getElementById('main-message');
+        const subMessage = document.getElementById('sub-message');
+        const bestTimeEl = document.getElementById('best-time');
+        const historyListEl = document.getElementById('history-list');
+
+        /**
+         * THREE.JS SETUP
+         */
+        let scene, camera, renderer, gameObject;
+        
+        // Materials mapped to Game States
+        const materials = {
+            wireframe: new THREE.MeshBasicMaterial({ color: 0x475569, wireframe: true }),
+            waiting: new THREE.MeshStandardMaterial({ 
+                color: 0xEF4444, 
+                emissive: 0x450a0a,
+                roughness: 0.2,
+                metalness: 0.8
+            }),
+            active: new THREE.MeshStandardMaterial({ 
+                color: 0x10B981, 
+                emissive: 0x064e3b,
+                roughness: 0.2,
+                metalness: 0.8
+            }),
+            penalty: new THREE.MeshStandardMaterial({ 
+                color: 0xEC4899, 
+                emissive: 0x831843,
+                roughness: 0.5,
+                metalness: 0.5
+            })
+        };
+
+        // Camera Drag Controls variables
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let shakeIntensity = 0;
+        let pulseTime = 0;
+
+        function initThreeJS() {
+            const container = document.getElementById('canvas-container');
+
+            // 1. Scene
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x0F172A, 0.02);
+
+            // 2. Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 30;
+
+            // 3. Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            // 4. Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            const pointLight = new THREE.PointLight(0xffffff, 1);
+            pointLight.position.set(10, 20, 20);
+            scene.add(pointLight);
+
+            // 5. 3D Object (Torus Knot)
+            const geometry = new THREE.TorusKnotGeometry(8, 2.5, 128, 32);
+            gameObject = new THREE.Mesh(geometry, materials.wireframe);
+            scene.add(gameObject);
+
+            // 6. Handle Window Resize
+            window.addEventListener('resize', onWindowResize, false);
+
+            // 7. Input Event Listeners
+            // Using mousedown for the fastest possible reaction time capture
+            window.addEventListener('mousedown', handlePointerDown, false);
+            window.addEventListener('mousemove', handlePointerMove, false);
+            window.addEventListener('mouseup', handlePointerUp, false);
+            
+            // Touch support for mobile
+            window.addEventListener('touchstart', (e) => {
+                // Take first touch point
+                const touch = e.touches[0];
+                handlePointerDown({ clientX: touch.clientX, clientY: touch.clientY });
+            }, { passive: false });
+            
+            // Keyboard support (Spacebar)
+            window.addEventListener('keydown', (e) => {
+                if (e.code === 'Space') {
+                    e.preventDefault(); // Prevent scrolling
+                    handleInput();
+                }
+            });
+
+            // Start Render Loop
+            animate();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        /**
+         * INPUT & CAMERA CONTROL LOGIC
+         */
+        function handlePointerDown(event) {
+            isDragging = true;
+            previousMousePosition = { x: event.clientX, y: event.clientY };
+            // Trigger game input logic immediately for precision
+            handleInput();
+        }
+
+        function handlePointerMove(event) {
+            if (isDragging) {
+                const deltaMove = {
+                    x: event.clientX - previousMousePosition.x,
+                    y: event.clientY - previousMousePosition.y
+                };
+
+                // Rotate the object based on mouse drag
+                gameObject.rotation.y += deltaMove.x * 0.005;
+                gameObject.rotation.x += deltaMove.y * 0.005;
+            }
+            previousMousePosition = { x: event.clientX, y: event.clientY };
+        }
+
+        function handlePointerUp() {
+            isDragging = false;
+        }
+
+        /**
+         * HIGH PRECISION GAME LOGIC
+         * We separate UI updates from the exact moment of input to prevent rendering latency 
+         * from affecting the calculated reaction time.
+         */
+        function handleInput() {
+            // Capture exact time immediately
+            const clickTime = performance.now();
+
+            switch (currentState) {
+                case STATES.IDLE:
+                case STATES.PENALTY:
+                case STATES.RESULT:
+                    startWaitingPhase();
+                    break;
+
+                case STATES.WAITING:
+                    triggerPenalty();
+                    break;
+
+                case STATES.ACTIVE:
+                    // Calculate precise delta
+                    const reactionTime = clickTime - activeStartTime;
+                    recordResult(reactionTime);
+                    break;
+            }
+        }
+
+        function startWaitingPhase() {
+            currentState = STATES.WAITING;
+            
+            // Visual Updates
+            gameObject.material = materials.waiting;
+            mainMessage.style.color = 'var(--accent-waiting)';
+            mainMessage.innerText = 'WAIT...';
+            subMessage.innerText = 'Be ready to click when it turns green';
+
+            // Calculate random delay between 2 and 7 seconds
+            const delay = Math.random() * 5000 + 2000;
+            
+            timeoutId = setTimeout(() => {
+                startActivePhase();
+            }, delay);
+        }
+
+        function startActivePhase() {
+            currentState = STATES.ACTIVE;
+            
+            // Visual Updates
+            gameObject.material = materials.active;
+            mainMessage.style.color = 'var(--accent-active)';
+            mainMessage.innerText = 'REACT!';
+            subMessage.innerText = 'CLICK NOW!';
+
+            // Record exact moment the visual changed
+            activeStartTime = performance.now();
+        }
+
+        function triggerPenalty() {
+            currentState = STATES.PENALTY;
+            clearTimeout(timeoutId);
+            
+            // Visual Updates
+            gameObject.material = materials.penalty;
+            mainMessage.style.color = 'var(--accent-penalty)';
+            mainMessage.innerText = 'TOO EARLY';
+            subMessage.innerText = 'Click to try again';
+            
+            // Trigger 3D shake effect in animation loop
+            shakeIntensity = 2.0; 
+        }
+
+        function recordResult(timeMs) {
+            currentState = STATES.RESULT;
+            const finalTime = Math.round(timeMs);
+            
+            // Visual Updates
+            gameObject.material = materials.wireframe;
+            mainMessage.style.color = 'var(--text-color)';
+            mainMessage.innerText = `${finalTime} ms`;
+            subMessage.innerText = 'Click to go again';
+
+            // Update State Data
+            if (finalTime < bestTime) {
+                bestTime = finalTime;
+                bestTimeEl.innerText = `${bestTime} ms`;
+            }
+
+            attemptHistory.unshift(finalTime);
+            if (attemptHistory.length > 5) attemptHistory.pop();
+
+            updateHistoryUI();
+        }
+
+        function updateHistoryUI() {
+            historyListEl.innerHTML = '';
+            attemptHistory.forEach((time, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `<span>Attempt ${index + 1}</span> <span>${time} ms</span>`;
+                historyListEl.appendChild(li);
+            });
+        }
+
+        /**
+         * EFFICIENT RENDER LOOP
+         * Kept lightweight to maintain 60FPS. 
+         * Logic is restricted to matrix transformations and material breathing effects.
+         */
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Baseline continuous rotation
+            if (!isDragging) {
+                gameObject.rotation.x += 0.002;
+                gameObject.rotation.y += 0.003;
+            }
+
+            // State-based continuous animations
+            if (currentState === STATES.WAITING) {
+                // Pulsing effect
+                pulseTime += 0.05;
+                const scale = 1 + Math.sin(pulseTime) * 0.05;
+                gameObject.scale.set(scale, scale, scale);
+            } else {
+                // Smoothly return to normal scale
+                gameObject.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
+            }
+
+            // Penalty Camera Shake
+            if (shakeIntensity > 0) {
+                camera.position.x = (Math.random() - 0.5) * shakeIntensity;
+                camera.position.y = (Math.random() - 0.5) * shakeIntensity;
+                shakeIntensity -= 0.05; // Decay
+                if (shakeIntensity < 0) {
+                    shakeIntensity = 0;
+                    camera.position.x = 0;
+                    camera.position.y = 0;
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Initialize immediately upon window load
+        window.onload = function() {
+            initThreeJS();
+        };
+
+    </script>
+</body>
+</html>
