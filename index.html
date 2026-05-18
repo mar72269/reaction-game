@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Reaction Timer | Cyber-Minimalism</title>
+    <title>Reaction Timer | Cyber-Minimalism</title>
     <!-- Google Fonts: JetBrains Mono -->
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <!-- Three.js CDN -->
@@ -17,18 +17,171 @@
             --accent-waiting: #EF4444; /* Pulsing Red */
             --accent-active: #10B981;  /* Glowing Emerald */
             --accent-penalty: #EC4899; /* Hot Pink */
-            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-bg: rgba(255, 255, 255, 0.03);
             --glass-border: rgba(255, 255, 255, 0.1);
         }
 
         body {
             margin: 0;
-            overflow: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 2rem 1rem;
+            box-sizing: border-box;
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: 'JetBrains Mono', monospace;
-            user-select: none; /* Prevent text selection during frantic clicking */
+            user-select: none;
             -webkit-user-select: none;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        /* TOP PANEL (Instructions & Controls) */
+        .top-panel {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            gap: 1.25rem;
+        }
+
+        .top-panel h1 { 
+            margin: 0; 
+            font-size: 2rem; 
+            letter-spacing: -0.05em; 
+        }
+
+        /* OVERLAYS */
+        .game-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85%;
+            max-width: 500px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            z-index: 20;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
+            pointer-events: none; /* Let clicks pass through to game-box */
+            visibility: visible;
+        }
+
+        .game-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            transform: translate(-50%, -45%);
+        }
+
+        .overlay-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+            letter-spacing: -0.05em;
+        }
+
+        .overlay-text {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .overlay-tiers {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            font-weight: bold;
+            text-align: left;
+            background: rgba(0,0,0,0.3);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .overlay-tiers div {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .overlay-score {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin: 0.5rem 0;
+            line-height: 1;
+            text-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .overlay-rank {
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            text-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-color);
+            font-family: 'JetBrains Mono', monospace;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 15px rgba(255,255,255,0.1);
+        }
+
+        .session-stats {
+            font-size: 1.1rem;
+        }
+
+        /* SELF-CONTAINED GAME BOX */
+        #game-box {
+            position: relative;
+            width: 90vw;
+            max-width: 900px;
+            height: 55vh;
+            max-height: 550px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255,255,255,0.05);
+            overflow: hidden;
+            cursor: pointer;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        #game-box:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255,255,255,0.08);
         }
 
         /* THREE.JS CANVAS CONTAINER */
@@ -36,172 +189,123 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 1;
-            cursor: crosshair;
-        }
-
-        /* UI OVERLAY LAYER */
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
             width: 100%;
             height: 100%;
-            z-index: 10;
-            pointer-events: none; /* Let clicks pass through to the canvas */
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 2rem;
-            box-sizing: border-box;
+            z-index: 1;
         }
 
-        /* GLASSMORPHIC PANELS */
-        .glass-panel {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 1.5rem;
-            pointer-events: auto; /* Re-enable pointer events for UI interaction if needed */
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-
-        .title h1 {
-            margin: 0;
-            font-size: 1.5rem;
-            font-weight: 700;
-            letter-spacing: -0.05em;
-        }
-
-        .title p {
-            margin: 0.25rem 0 0 0;
-            font-size: 0.85rem;
-            opacity: 0.6;
-        }
-
-        .stats-container {
-            text-align: right;
-            min-width: 150px;
-        }
-
-        .stat-label {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            opacity: 0.6;
-            letter-spacing: 0.05em;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--accent-active);
-            margin-top: 0.25rem;
-        }
-
-        .history-list {
-            list-style: none;
-            padding: 0;
-            margin: 0.5rem 0 0 0;
-            font-size: 0.85rem;
-            opacity: 0.8;
-            max-height: 100px;
-            overflow-y: hidden;
-        }
-
-        .history-list li {
-            margin-bottom: 0.25rem;
-            display: flex;
-            justify-content: space-between;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            padding-bottom: 2px;
-        }
-
-        .center-display {
+        /* INNER UI OVERLAY (Bottom Center for Fault) */
+        #hud-bottom {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            bottom: 2rem;
+            left: 0;
+            width: 100%;
+            z-index: 10;
             text-align: center;
             pointer-events: none;
         }
 
-        #main-message {
-            font-size: 2.5rem;
+        #fault-message {
+            font-size: 1.5rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            text-shadow: 0 0 20px rgba(0,0,0,0.8);
+            color: var(--accent-penalty);
+            text-shadow: 0 0 20px rgba(236, 72, 153, 0.5);
             margin: 0;
-            transition: color 0.2s ease;
+            opacity: 0;
+            transition: opacity 0.2s ease;
         }
 
-        #sub-message {
-            font-size: 1rem;
-            opacity: 0.7;
+        #instruction-message {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.6);
             margin-top: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: opacity 0.2s ease;
         }
 
-        .footer {
-            text-align: center;
-            opacity: 0.5;
-            font-size: 0.85rem;
+        .mobile-only {
+            display: none;
         }
 
-        /* MEDIA QUERIES FOR RESPONSIVENESS */
+        /* MEDIA QUERIES */
         @media (max-width: 768px) {
-            .header { flex-direction: column; gap: 1rem; }
-            .stats-container { text-align: left; }
-            #main-message { font-size: 1.8rem; }
+            body { padding: 0.5rem; }
+            .top-panel { margin-bottom: 0.5rem; gap: 0.5rem; }
+            .top-panel h1 { font-size: 1.5rem; }
+            .controls { flex-direction: row; justify-content: center; gap: 0.5rem; }
+            .btn { padding: 0.5rem 1rem; font-size: 0.8rem; }
+            #game-box { height: 45vh; }
+            .desktop-only { display: none !important; }
+            .mobile-only { display: inline !important; }
+            
+            .game-overlay { width: 95%; padding: 1.25rem; }
+            .overlay-title { font-size: 1.25rem; }
+            .overlay-text { font-size: 0.85rem; }
+            .overlay-tiers { font-size: 0.75rem; padding: 0.75rem; gap: 0.25rem; }
+            .overlay-score { font-size: 2.5rem; }
+            .overlay-rank { font-size: 1rem; }
         }
     </style>
 </head>
 <body>
 
-    <!-- 3D Render Target -->
-    <div id="canvas-container"></div>
+    <div class="top-panel">
+        <h1>NEURO_RESPONSE</h1>
+        
+        <div class="controls">
+            <button id="btn-start" class="btn">START GAME</button>
+            <button id="btn-reset" class="btn">RESET STATS</button>
+        </div>
+        
+        <div class="session-stats">
+            BEST TIME: <span id="best-time" style="color: var(--accent-active); font-weight: bold;">-- ms</span>
+        </div>
+    </div>
 
-    <!-- UI Overlay -->
-    <div id="ui-layer">
-        <div class="header">
-            <div class="glass-panel title">
-                <h1>NEURO_RESPONSE</h1>
-                <p>High-Precision 3D Reaction Test</p>
+    <!-- Self-Contained Interactive Area -->
+    <div id="game-box">
+        <!-- 3D Render Target -->
+        <div id="canvas-container"></div>
+
+        <!-- Overlays -->
+        <div id="start-overlay" class="game-overlay">
+            <div class="overlay-title">HOW TO PLAY</div>
+            <div class="overlay-text">
+                Wait for the shape to turn <span style="color: var(--accent-active); font-weight: bold;">GREEN</span>, then react as fast as humanly possible.
             </div>
-            
-            <div class="glass-panel stats-container">
-                <div class="stat-label">Best Time</div>
-                <div class="stat-value" id="best-time">-- ms</div>
-                <div class="stat-label" style="margin-top: 1rem;">Recent</div>
-                <ul class="history-list" id="history-list">
-                    <li>No attempts yet</li>
-                </ul>
+            <div class="overlay-tiers">
+                <div><span>&lt; 150ms:</span> <span style="color: #A855F7">AMAZING</span></div>
+                <div><span>150 - 200ms:</span> <span style="color: #3B82F6">VERY GOOD</span></div>
+                <div><span>201 - 250ms:</span> <span style="color: #10B981">GOOD</span></div>
+                <div><span>251 - 300ms:</span> <span style="color: #EAB308">AVERAGE</span></div>
+                <div><span>&gt; 300ms:</span> <span style="color: #F97316">BELOW AVERAGE</span></div>
             </div>
         </div>
 
-        <div class="center-display">
-            <h2 id="main-message">SYSTEM IDLE</h2>
-            <p id="sub-message">Click or press Spacebar to initiate sequence</p>
+        <div id="result-overlay" class="game-overlay hidden" style="max-width: 350px;">
+            <div class="overlay-title" style="margin-bottom: 0;">REACTION TIME</div>
+            <div id="overlay-score" class="overlay-score">--</div>
+            <div id="overlay-rank" class="overlay-rank">--</div>
         </div>
 
-        <div class="footer">
-            <p>Drag to rotate camera | Built with Vanilla JS & Three.js</p>
+        <!-- In-Box UI: Bottom Fault Message -->
+        <div id="hud-bottom">
+            <div id="fault-message">FAULT: TOO EARLY</div>
+            <div id="instruction-message">
+                <span class="desktop-only">CLICK HERE OR PRESS SPACE TO START</span>
+                <span class="mobile-only">TAP HERE TO START</span>
+            </div>
         </div>
     </div>
 
     <script>
         /**
          * STATE MACHINE & GAME LOGIC
-         * Using performance.now() for sub-millisecond precision.
+         * Sub-millisecond precision handled independently of render loop.
          */
         const STATES = {
             IDLE: 'IDLE',
@@ -214,102 +318,114 @@
         let currentState = STATES.IDLE;
         let timeoutId = null;
         let activeStartTime = 0;
-        
-        // In-memory state tracking
         let bestTime = Infinity;
-        let attemptHistory = [];
 
         // DOM Elements
-        const mainMessage = document.getElementById('main-message');
-        const subMessage = document.getElementById('sub-message');
+        const gameBox = document.getElementById('game-box');
+        const startOverlay = document.getElementById('start-overlay');
+        const resultOverlay = document.getElementById('result-overlay');
+        const overlayScore = document.getElementById('overlay-score');
+        const overlayRank = document.getElementById('overlay-rank');
+        const faultMessage = document.getElementById('fault-message');
+        const instructionMessage = document.getElementById('instruction-message');
         const bestTimeEl = document.getElementById('best-time');
-        const historyListEl = document.getElementById('history-list');
+        const btnStart = document.getElementById('btn-start');
+        const btnReset = document.getElementById('btn-reset');
 
         /**
-         * THREE.JS SETUP
+         * THREE.JS SETUP & MATERIALS
          */
-        let scene, camera, renderer, gameObject;
-        
-        // Materials mapped to Game States
-        const materials = {
-            wireframe: new THREE.MeshBasicMaterial({ color: 0x475569, wireframe: true }),
-            waiting: new THREE.MeshStandardMaterial({ 
-                color: 0xEF4444, 
-                emissive: 0x450a0a,
-                roughness: 0.2,
-                metalness: 0.8
-            }),
-            active: new THREE.MeshStandardMaterial({ 
-                color: 0x10B981, 
-                emissive: 0x064e3b,
-                roughness: 0.2,
-                metalness: 0.8
-            }),
-            penalty: new THREE.MeshStandardMaterial({ 
-                color: 0xEC4899, 
-                emissive: 0x831843,
-                roughness: 0.5,
-                metalness: 0.5
-            })
-        };
-
-        // Camera Drag Controls variables
-        let isDragging = false;
-        let previousMousePosition = { x: 0, y: 0 };
+        let scene, camera, renderer, compoundObject;
+        let outerMesh, innerMesh;
         let shakeIntensity = 0;
-        let pulseTime = 0;
+
+        // Material Palettes for the Compound Shape
+        const matLib = {
+            idle: {
+                outer: new THREE.MeshBasicMaterial({ color: 0x475569, wireframe: true, transparent: true, opacity: 0.3 }),
+                inner: new THREE.MeshStandardMaterial({ color: 0x334155, emissive: 0x0f172a, roughness: 0.5 })
+            },
+            waiting: {
+                outer: new THREE.MeshBasicMaterial({ color: 0xEF4444, wireframe: true, transparent: true, opacity: 0.8 }),
+                inner: new THREE.MeshStandardMaterial({ color: 0xEF4444, emissive: 0x450a0a, roughness: 0.2 })
+            },
+            active: {
+                outer: new THREE.MeshBasicMaterial({ color: 0x10B981, wireframe: true, transparent: true, opacity: 1 }),
+                inner: new THREE.MeshStandardMaterial({ color: 0x10B981, emissive: 0x064e3b, roughness: 0.1 })
+            },
+            penalty: {
+                outer: new THREE.MeshBasicMaterial({ color: 0xEC4899, wireframe: true }),
+                inner: new THREE.MeshStandardMaterial({ color: 0xEC4899, emissive: 0x831843, roughness: 0.5 })
+            }
+        };
 
         function initThreeJS() {
             const container = document.getElementById('canvas-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
 
-            // 1. Scene
+            // 1. Scene & Camera
             scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2(0x0F172A, 0.02);
+            camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
+            camera.position.z = 25;
 
-            // 2. Camera
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 30;
-
-            // 3. Renderer
+            // 2. Renderer
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(width, height);
             renderer.setPixelRatio(window.devicePixelRatio);
             container.appendChild(renderer.domElement);
 
-            // 4. Lighting
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            // 3. Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
-
-            const pointLight = new THREE.PointLight(0xffffff, 1);
+            const pointLight = new THREE.PointLight(0xffffff, 2);
             pointLight.position.set(10, 20, 20);
             scene.add(pointLight);
 
-            // 5. 3D Object (Torus Knot)
-            const geometry = new THREE.TorusKnotGeometry(8, 2.5, 128, 32);
-            gameObject = new THREE.Mesh(geometry, materials.wireframe);
-            scene.add(gameObject);
-
-            // 6. Handle Window Resize
-            window.addEventListener('resize', onWindowResize, false);
-
-            // 7. Input Event Listeners
-            // Using mousedown for the fastest possible reaction time capture
-            window.addEventListener('mousedown', handlePointerDown, false);
-            window.addEventListener('mousemove', handlePointerMove, false);
-            window.addEventListener('mouseup', handlePointerUp, false);
+            // 4. Advanced Geometry (Compound Object)
+            compoundObject = new THREE.Group();
             
-            // Touch support for mobile
-            window.addEventListener('touchstart', (e) => {
-                // Take first touch point
-                const touch = e.touches[0];
-                handlePointerDown({ clientX: touch.clientX, clientY: touch.clientY });
+            // Outer Geodesic Sphere (Icosahedron with detail)
+            const outerGeo = new THREE.IcosahedronGeometry(8, 1);
+            outerMesh = new THREE.Mesh(outerGeo, matLib.idle.outer);
+            
+            // Inner Solid Core (Octahedron)
+            const innerGeo = new THREE.OctahedronGeometry(5, 0);
+            innerMesh = new THREE.Mesh(innerGeo, matLib.idle.inner);
+
+            compoundObject.add(outerMesh);
+            compoundObject.add(innerMesh);
+            scene.add(compoundObject);
+
+            // 5. Event Listeners
+            window.addEventListener('resize', onWindowResize, false);
+            
+            // Bind input STRICTLY to the game box
+            gameBox.addEventListener('mousedown', handleInput);
+            gameBox.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Prevent double-firing with mouse events
+                handleInput();
             }, { passive: false });
             
-            // Keyboard support (Spacebar)
+            // UI Button Listeners
+            btnStart.addEventListener('click', () => {
+                if (currentState !== STATES.WAITING && currentState !== STATES.ACTIVE) {
+                    startWaitingPhase();
+                }
+            });
+
+            btnReset.addEventListener('click', () => {
+                bestTime = Infinity;
+                bestTimeEl.innerText = '-- ms';
+                resultOverlay.classList.add('hidden');
+                faultMessage.style.opacity = '0';
+            });
+
+            // Keyboard remains global but acts on the game
             window.addEventListener('keydown', (e) => {
                 if (e.code === 'Space') {
-                    e.preventDefault(); // Prevent scrolling
-                    handleInput();
+                    e.preventDefault();
+                    handleInput(); // Let handleInput route the state cleanly
                 }
             });
 
@@ -318,47 +434,30 @@
         }
 
         function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
+            const container = document.getElementById('canvas-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            camera.aspect = width / height;
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(width, height);
         }
 
         /**
-         * INPUT & CAMERA CONTROL LOGIC
+         * RANKING SYSTEM
          */
-        function handlePointerDown(event) {
-            isDragging = true;
-            previousMousePosition = { x: event.clientX, y: event.clientY };
-            // Trigger game input logic immediately for precision
-            handleInput();
-        }
-
-        function handlePointerMove(event) {
-            if (isDragging) {
-                const deltaMove = {
-                    x: event.clientX - previousMousePosition.x,
-                    y: event.clientY - previousMousePosition.y
-                };
-
-                // Rotate the object based on mouse drag
-                gameObject.rotation.y += deltaMove.x * 0.005;
-                gameObject.rotation.x += deltaMove.y * 0.005;
-            }
-            previousMousePosition = { x: event.clientX, y: event.clientY };
-        }
-
-        function handlePointerUp() {
-            isDragging = false;
+        function getRank(time) {
+            if (time < 150) return { text: 'AMAZING', color: '#A855F7' }; // Purple
+            if (time <= 200) return { text: 'VERY GOOD', color: '#3B82F6' }; // Blue
+            if (time <= 250) return { text: 'GOOD', color: '#10B981' }; // Green
+            if (time <= 300) return { text: 'AVERAGE', color: '#EAB308' }; // Yellow
+            return { text: 'BELOW AVERAGE', color: '#F97316' }; // Orange
         }
 
         /**
-         * HIGH PRECISION GAME LOGIC
-         * We separate UI updates from the exact moment of input to prevent rendering latency 
-         * from affecting the calculated reaction time.
+         * PRECISION TIMING & STATE HANDLING
          */
         function handleInput() {
-            // Capture exact time immediately
-            const clickTime = performance.now();
+            const clickTime = performance.now(); // Microsecond snapshot
 
             switch (currentState) {
                 case STATES.IDLE:
@@ -372,24 +471,28 @@
                     break;
 
                 case STATES.ACTIVE:
-                    // Calculate precise delta
                     const reactionTime = clickTime - activeStartTime;
                     recordResult(reactionTime);
                     break;
             }
         }
 
+        function updateMaterials(state) {
+            outerMesh.material = matLib[state].outer;
+            innerMesh.material = matLib[state].inner;
+        }
+
         function startWaitingPhase() {
             currentState = STATES.WAITING;
+            updateMaterials('waiting');
             
-            // Visual Updates
-            gameObject.material = materials.waiting;
-            mainMessage.style.color = 'var(--accent-waiting)';
-            mainMessage.innerText = 'WAIT...';
-            subMessage.innerText = 'Be ready to click when it turns green';
+            startOverlay.classList.add('hidden');
+            resultOverlay.classList.add('hidden');
+            
+            faultMessage.style.opacity = '0';
+            instructionMessage.style.opacity = '0';
 
-            // Calculate random delay between 2 and 7 seconds
-            const delay = Math.random() * 5000 + 2000;
+            const delay = Math.random() * 5000 + 2000; // 2-7 seconds
             
             timeoutId = setTimeout(() => {
                 startActivePhase();
@@ -398,93 +501,82 @@
 
         function startActivePhase() {
             currentState = STATES.ACTIVE;
+            updateMaterials('active');
             
-            // Visual Updates
-            gameObject.material = materials.active;
-            mainMessage.style.color = 'var(--accent-active)';
-            mainMessage.innerText = 'REACT!';
-            subMessage.innerText = 'CLICK NOW!';
-
-            // Record exact moment the visual changed
             activeStartTime = performance.now();
         }
 
         function triggerPenalty() {
             currentState = STATES.PENALTY;
             clearTimeout(timeoutId);
+            updateMaterials('penalty');
             
-            // Visual Updates
-            gameObject.material = materials.penalty;
-            mainMessage.style.color = 'var(--accent-penalty)';
-            mainMessage.innerText = 'TOO EARLY';
-            subMessage.innerText = 'Click to try again';
+            resultOverlay.classList.add('hidden');
             
-            // Trigger 3D shake effect in animation loop
-            shakeIntensity = 2.0; 
+            faultMessage.style.opacity = '1';
+            instructionMessage.style.opacity = '1';
+            instructionMessage.innerHTML = '<span class="desktop-only">CLICK OR PRESS SPACE TO RETRY</span><span class="mobile-only">TAP TO RETRY</span>';
+            
+            shakeIntensity = 1.5; 
         }
 
         function recordResult(timeMs) {
             currentState = STATES.RESULT;
             const finalTime = Math.round(timeMs);
+            updateMaterials('idle');
             
-            // Visual Updates
-            gameObject.material = materials.wireframe;
-            mainMessage.style.color = 'var(--text-color)';
-            mainMessage.innerText = `${finalTime} ms`;
-            subMessage.innerText = 'Click to go again';
+            instructionMessage.style.opacity = '1';
+            instructionMessage.innerHTML = '<span class="desktop-only">CLICK OR PRESS SPACE TO PLAY AGAIN</span><span class="mobile-only">TAP TO PLAY AGAIN</span>';
 
-            // Update State Data
+            resultOverlay.classList.remove('hidden');
+            overlayScore.innerText = `${finalTime}ms`;
+            overlayScore.style.color = 'var(--accent-active)';
+
+            // Calculate and display rank
+            const rank = getRank(finalTime);
+            overlayRank.innerText = rank.text;
+            overlayRank.style.color = rank.color;
+
             if (finalTime < bestTime) {
                 bestTime = finalTime;
                 bestTimeEl.innerText = `${bestTime} ms`;
             }
-
-            attemptHistory.unshift(finalTime);
-            if (attemptHistory.length > 5) attemptHistory.pop();
-
-            updateHistoryUI();
-        }
-
-        function updateHistoryUI() {
-            historyListEl.innerHTML = '';
-            attemptHistory.forEach((time, index) => {
-                const li = document.createElement('li');
-                li.innerHTML = `<span>Attempt ${index + 1}</span> <span>${time} ms</span>`;
-                historyListEl.appendChild(li);
-            });
         }
 
         /**
-         * EFFICIENT RENDER LOOP
-         * Kept lightweight to maintain 60FPS. 
-         * Logic is restricted to matrix transformations and material breathing effects.
+         * RENDER LOOP
+         * Kept lean to guarantee 60fps. Visual logic only.
          */
         function animate() {
             requestAnimationFrame(animate);
 
-            // Baseline continuous rotation
-            if (!isDragging) {
-                gameObject.rotation.x += 0.002;
-                gameObject.rotation.y += 0.003;
-            }
+            const time = Date.now() * 0.001;
 
-            // State-based continuous animations
+            // Continuous complex rotation
+            compoundObject.rotation.x += 0.002;
+            compoundObject.rotation.y += 0.003;
+            
+            // Core counter-rotates for a mechanical feel
+            innerMesh.rotation.x -= 0.004;
+            innerMesh.rotation.y -= 0.006;
+
+            // Gentle vertical floating
+            compoundObject.position.y = Math.sin(time) * 1.0;
+
+            // Breathing effect during wait state
             if (currentState === STATES.WAITING) {
-                // Pulsing effect
-                pulseTime += 0.05;
-                const scale = 1 + Math.sin(pulseTime) * 0.05;
-                gameObject.scale.set(scale, scale, scale);
+                const scale = 1 + Math.sin(time * 8) * 0.05;
+                compoundObject.scale.set(scale, scale, scale);
             } else {
-                // Smoothly return to normal scale
-                gameObject.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
+                compoundObject.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
             }
 
-            // Penalty Camera Shake
+            // High-impact camera shake for penalties
             if (shakeIntensity > 0) {
                 camera.position.x = (Math.random() - 0.5) * shakeIntensity;
                 camera.position.y = (Math.random() - 0.5) * shakeIntensity;
                 shakeIntensity -= 0.05; // Decay
-                if (shakeIntensity < 0) {
+                if (shakeIntensity <= 0) {
                     shakeIntensity = 0;
                     camera.position.x = 0;
                     camera.position.y = 0;
